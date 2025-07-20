@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Enhanced Expense Tracker</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f6f9fa;
+    }
+    .container {
+      max-width: 440px;
+      background: #fff;
+      margin: 40px auto;
+      padding: 25px 20px 30px 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px #ccd7e6;
+      position: relative;
+    }
+    h2 {
+      text-align: center;
+      color: #185abc;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .info {
+      text-align: center;
+      margin: 12px 0 18px 0;
+      font-size: 1.1em;
+      color: #4d647b;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      border-radius: 5px;
+      border: 1px solid #bed2eb;
+      outline: none;
+      transition: border 0.2s;
+    }
+    input:focus {
+      border: 1.5px solid #3884ee;
+    }
+    button {
+      background: #3884ee;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      margin-top: 7px;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #185abc;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+    }
+    li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #e7f3ff;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      box-shadow: 0 1px 2px #d2e3e9;
+      font-size: 1em;
+    }
+    .amount {
+      font-weight: 600;
+      color: #3884ee;
+    }
+    .delete-btn {
+      background: #ffc0cb;
+      border: none;
+      color: #a01d3f;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-left: 18px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .delete-btn:hover {
+      background: #ba4157;
+      color: #fff;
+    }
+    .total, .count {
+      text-align: right;
+      font-weight: 600;
+      font-size: 1.1em;
+      margin-bottom: 2px;
+      color: #185abc;
+    }
+    canvas {
+      background: #f4faff;
+      border-radius: 8px;
+      display: block;
+      margin: 15px auto 0 auto;
+      box-shadow: 0 1px 4px #e1e8ee;
+    }
+    @media (max-width:500px) {
+      .container { max-width: 99vw; padding: 8vw 2vw; }
+      h2 { font-size: 1.5em; }
+      ul { max-height: 120px;}
+      canvas { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Expense Tracker</h2>
+    <div class="info">Track your expenses visually and interactively</div>
+    <form id="expense-form" autocomplete="off">
+      <input type="text" id="desc" placeholder="Description" required>
+      <input type="number" id="amount" placeholder="Amount" min="0.01" step="0.01" required>
+      <button type="submit">Add Expense</button>
+    </form>
+    <div class="count"># Expenses: <span id="expense-count">0</span></div>
+    <ul id="expenses-list"></ul>
+    <div class="total">Total: ₹<span id="total">0.00</span></div>
+    <canvas id="chart" width="380" height="140"></canvas>
+  </div>
+  <script>
+    const form = document.getElementById('expense-form');
+    const desc = document.getElementById('desc');
+    const amount = document.getElementById('amount');
+    const expensesList = document.getElementById('expenses-list');
+    const totalSpan = document.getElementById('total');
+    const countSpan = document.getElementById('expense-count');
+    const chart = document.getElementById('chart');
+    const ctx = chart.getContext('2d');
+
+    let expenses = [];
+
+    function renderExpenses() {
+      expensesList.innerHTML = '';
+      let total = 0;
+      expenses.forEach((exp, idx) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span>${exp.desc} - <span class="amount">₹${exp.amount.toFixed(2)}</span></span>
+          <button class="delete-btn" data-idx="${idx}">Delete</button>
+        `;
+        expensesList.appendChild(li);
+        total += exp.amount;
+      });
+      totalSpan.textContent = total.toFixed(2);
+      countSpan.textContent = expenses.length;
+    }
+
+    function renderChart() {
+      // Clear chart
+      ctx.clearRect(0, 0, chart.width, chart.height);
+      if (expenses.length === 0) {
+        ctx.fillStyle = '#aaa';
+        ctx.font = '15px Segoe UI, Arial';
+        ctx.fillText('Add expenses to see chart', 80, 75);
+        return;
+      }
+      let maxAmt = Math.max(...expenses.map(e => e.amount), 100);
+      let barW = Math.max(30, (chart.width - 40) / expenses.length - 10);
+      let space = 10;
+      expenses.forEach((e, i) => {
+        let barH = Math.round((e.amount / maxAmt) * (chart.height - 40));
+        ctx.fillStyle = '#3884ee';
+        ctx.fillRect(20 + i * (barW + space), chart.height - barH - 25, barW, barH);
+        ctx.fillStyle = '#444';
+        ctx.font = '12px Segoe UI';
+        ctx.fillText(e.desc.slice(0,10), 22 + i * (barW + space), chart.height - 7);
+        ctx.fillStyle = '#185abc';
+        ctx.font = 'bold 12px Segoe UI';
+        ctx.fillText('₹' + e.amount, 22 + i * (barW + space), chart.height - barH - 32);
+      });
+    }
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const description = desc.value.trim();
+      const value = parseFloat(amount.value);
+      if (!description || isNaN(value) || value <= 0) return;
+      expenses.push({desc: description, amount: value});
+      renderExpenses();
+      renderChart();
+      desc.value = '';
+      amount.value = '';
+      desc.focus();
+    });
+
+    expensesList.addEventListener('click', function(e) {
+      if (e.target.classList.contains('delete-btn')) {
+        const idx = e.target.getAttribute('data-idx');
+        expenses.splice(idx, 1);
+        renderExpenses();
+        renderChart();
+      }
+    });
+
+    // Initial Render
+    renderExpenses();
+    renderChart();
+  </script>
+</body>
+</html>
